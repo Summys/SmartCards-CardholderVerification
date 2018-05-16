@@ -1,0 +1,25 @@
+#Sample_Device
+#Wed May 16 10:00:48 EEST 2018
+no_apdu_console=false
+apdu_mi=false
+apdu_nobanner=false
+proxy2cref_port=7019
+nomeminfo=false
+nobanner=false
+proxy2ide_port=7020
+apdu_verbose=false
+z=false
+port=9025
+t=false
+s=false
+protocol=2
+apdu_k=false
+input_filename=
+n=false
+apdu_noatr=false
+e2p_filename=
+output_filename=
+description=Device for running samples
+apdu_d=false
+e=false
+b=false
