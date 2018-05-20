@@ -22,6 +22,9 @@ public class Main {
     private static final String capFilePath =
             "F:\\Facultate\\SmartCards\\SmartCards-LoyalityApplet\\Wallet\\applet\\apdu_scripts\\cap-com.sun.jcclassic.samples.wallet.script";
 
+    private static final byte[][] TERMINAL_CVM_LIST = new byte[][]{new byte[]{50, 95, 6}, new byte[]{100, 65, 6}, new byte[]{100, 68, 7}};
+    private static byte[][] CARD_CVM_LIST;
+
     public static void main(String[] args) throws IOException, CadTransportException {
         CadClientInterface cad;
         Socket sock;
@@ -111,18 +114,21 @@ public class Main {
         apdu.setDataIn(new byte[]{(byte) 0xa0, 0x0, 0x0, 0x0, 0x62, 0x3, 0x1, 0xc, 0x6, 0x1});
         cad.exchangeApdu(apdu);
 
-
         System.out.println(apdu);
 
+        // receive the CVM_LIST
+        apdu = new Apdu();
+        apdu.command = new byte[]{(byte) 0x80, (byte) 0x51, 0x00, 0x00};
+        apdu.setDataIn(new byte[]{});
+        apdu.setLe(0x1E);
+
+        cad.exchangeApdu(apdu);
+
+        // creating the CARD_CVM_LIST
+        CARD_CVM_LIST = new byte[][]{new byte[]{apdu.getDataOut()[3], apdu.getDataOut()[8], apdu.getDataOut()[9]},
+                new byte[]{apdu.getDataOut()[13], apdu.getDataOut()[18], apdu.getDataOut()[19]},
+                new byte[]{apdu.getDataOut()[23], apdu.getDataOut()[28], apdu.getDataOut()[29]}};
 
         cad.powerDown();
     }
 }
-
-//Select Wallet
-//0x00 0xA4 0x04 0x00 0x0a 0xa0 0x0 0x0 0x0 0x62 0x3 0x1 0xc 0x6 0x1 0x7F;
-//APDU|CLA: 00, INS: a4, P1: 04, P2: 00, Lc: 0a, a0, 00, 00, 00, 62, 03, 01, 0c, 06, 01, Le: 00, SW1: 90, SW2: 00
-
-//// create wallet applet
-//0x80 0xB8 0x00 0x00 0x14 0x0a 0xa0 0x0 0x0 0x0 0x62 0x3 0x1 0xc 0x6 0x1 0x08 0x0 0x0 0x05 0x01 0x02 0x03 0x04 0x05 0x7F;
-//APDU|CLA: 80, INS: b8, P1: 00, P2: 00, Lc: 14, 0a, a0, 00, 00, 00, 62, 03, 01, 0c, 06, 01, 08, 00, 00, 05, 01, 02, 03, 04, 05, Le: 0a, a0, 00, 00, 00, 62, 03, 01, 0c, 06, 01, SW1: 90, SW2: 00

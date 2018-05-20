@@ -24,12 +24,19 @@ public class Wallet extends Applet {
 
     // code of CLA byte in the command APDU header
     final static byte Wallet_CLA = (byte) 0x80;
+    
+    final static byte CVM_RULE_SIZE = 10;
+    final static byte CVM_LIST_SIZE = 3;
+    
+    final static byte AMOUNT1 = 50;
+    final static byte AMOUNT2 = 100;
 
     // codes of INS byte in the command APDU header
     final static byte VERIFY = (byte) 0x20;
     final static byte CREDIT = (byte) 0x30;
     final static byte DEBIT = (byte) 0x40;
     final static byte GET_BALANCE = (byte) 0x50;
+    final static byte SEND_CVM_LIST = (byte) 0x51;
 
     // maximum balance
     final static short MAX_BALANCE = 0x7FFF;
@@ -150,6 +157,9 @@ public class Wallet extends Applet {
             case VERIFY:
                 verify(apdu);
                 return;
+            case SEND_CVM_LIST:
+                sendCVMList(apdu);
+                return;
             default:
                 ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
         }
@@ -230,7 +240,87 @@ public class Wallet extends Applet {
         }
 
         balance = (short) (balance - debitAmount);
+        
+//        pin.reset();
 
+    } // end of debit method
+    
+    private void sendCVMList(APDU apdu) {
+    	
+        byte[] buffer = apdu.getBuffer();
+
+        short le = apdu.setOutgoing();
+
+        if ((le != 30)) {
+            ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+        }
+
+        apdu.setOutgoingLength((byte)((byte) CVM_LIST_SIZE * (byte)CVM_RULE_SIZE));
+        
+        // X for the first rule
+        buffer[0] = 0;
+        buffer[1] = 0;
+        buffer[2] = 0;
+        buffer[3] = AMOUNT1;
+        
+        // Y for the first rule
+        buffer[4] = 0;
+        buffer[5] = 0;
+        buffer[6] = 0;
+        buffer[7] = 0;
+        
+        // The CVM code for the first rule
+        // No CVM required
+        buffer[8] = 0b01011111;
+        
+        // The condition code
+        // If the currency is under the X value(AMOUNT1)
+        buffer[9] = 0x06;
+        
+        
+        // X for the second rule
+        buffer[10] = 0;
+        buffer[11] = 0;
+        buffer[12] = 0;
+        buffer[13] = AMOUNT2;
+        
+        // Y for the first rule
+        buffer[14] = 0;
+        buffer[15] = 0;
+        buffer[16] = 0;
+        buffer[17] = 0;
+        
+        // The CVM code for the first rule
+        // Plain text PIN verification performed by the ICC
+        buffer[18] = 0b01000001;
+        
+        // The condition code
+        // If the currency is under the X value(AMOUNT2 this time)
+        buffer[19] = 0x06;
+        
+        // X for the third rule
+        buffer[20] = 0;
+        buffer[21] = 0;
+        buffer[22] = 0;
+        buffer[23] = AMOUNT2;
+        
+        // Y for the first rule
+        buffer[24] = 0;
+        buffer[25] = 0;
+        buffer[26] = 0;
+        buffer[27] = 0;
+        
+        // The CVM code for the first rule
+        // Enciphered PIN verification performed by the ICC
+        buffer[28] = 0b01000100;
+        
+        // The condition code
+        // If the currency is over the X value(AMOUNT2 again)
+        buffer[29] = 0x07;
+       
+        // send the CVM_LIST_SIZE * CVM_RULE_SIZE-byte CVM_LIST at the offset
+        // 0 in the apdu buffer
+        apdu.sendBytes((short) 0, (byte)((byte) CVM_LIST_SIZE * (byte)CVM_RULE_SIZE));
     } // end of debit method
 
     private void getBalance(APDU apdu) {

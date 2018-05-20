@@ -1,0 +1,12 @@
+Digest for com/sun/jcclassic/samples/wallet/javacard/RefLocation.cap		[SHA-256: a88e3c56c871e7f6827d1ed94f2a0a0e209f16cc0398337745ed91764dd5aaf2]
+Digest for com/sun/jcclassic/samples/wallet/javacard/Class.cap		[SHA-256: dc3ac08f699ca7c43737ae6a4a13aadc4a974529e0b7aef7e1dd5f058e17524c]
+Digest for com/sun/jcclassic/samples/wallet/javacard/Import.cap		[SHA-256: e58492b256b4af8d7f1860f18e57c5336e254a618c2518c987dcefb33db0a8d0]
+Digest for com/sun/jcclassic/samples/wallet/javacard/Header.cap		[SHA-256: cd09fe01eea596b3067dfb95609e6738a3ca47eb3826079717d4cbc4a566a120]
+Digest for com/sun/jcclassic/samples/wallet/javacard/Applet.cap		[SHA-256: d97fe53d6f5ad492741ce73d98a12734dcd519e23e1cba2bb9c8d01cd7252d19]
+Digest for com/sun/jcclassic/samples/wallet/javacard/ConstantPool.cap		[SHA-256: 1121ec54f9582f64ab7695b4abc8d706e0ac1a75f0f464e2c4804fd42c7cca84]
+Digest for com/sun/jcclassic/samples/wallet/javacard/StaticField.cap		[SHA-256: 5863e9740af5fb905922380b2aa88309a16a285dd3412417ae8af941327901ee]
+Digest for com/sun/jcclassic/samples/wallet/javacard/Debug.cap		[SHA-256: 2488bcfd015fa99823821cd7b990a176adf5e9b5ddbd3a29ac37608d5fa271d7]
+Digest for com/sun/jcclassic/samples/wallet/javacard/Descriptor.cap		[SHA-256: 38c35673d9b2319ab336ac7564f8d1ae177a759a62aebf35522b0c4695a8100e]
+Digest for com/sun/jcclassic/samples/wallet/javacard/Method.cap		[SHA-256: 73265e6600fb0c544296fdf356cc6a55ed7bc858bbc434da1d728e64e9bec4db]
+Digest for com/sun/jcclassic/samples/wallet/javacard/Directory.cap		[SHA-256: f0712eb0fea135119b38538684272f79edc3cbe8970e6c8fb821fe53e534a8cf]
+Verification completed with 0 warnings and 0 errors.
