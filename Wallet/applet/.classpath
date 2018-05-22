@@ -12,5 +12,6 @@
 		</attributes>
 	</classpathentry>
 	<classpathentry kind="var" path="Sample_Platform_HOME/lib/api_classic_annotations.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Luca Andrei/Downloads/bcprov-jdk15on-159.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -1,5 +1,5 @@
 // converted by version  [v3.0.5]
-// on Sun May 20 12:36:04 EEST 2018
+// on Tue May 22 18:24:35 EEST 2018
 
 .package com/sun/jcclassic/samples/wallet {
 	.aid 0xA0:0x0:0x0:0x0:0x62:0x3:0x1:0xC:0x6;
@@ -7,6 +7,8 @@
 
 	.imports {
 		0xA0:0x0:0x0:0x0:0x62:0x1:0x1 1.6;		//javacard/framework
+		0xA0:0x0:0x0:0x0:0x62:0x1:0x2 1.6;		//javacard/security
+		0xA0:0x0:0x0:0x0:0x62:0x2:0x1 1.6;		//javacardx/crypto
 		0xA0:0x0:0x0:0x0:0x62:0x0:0x1 1.0;		//java/lang
 	}
 
@@ -20,7 +22,7 @@
 		// 1
 		instanceFieldRef short Wallet/balance;
 		// 2
-		staticMethodRef 0.9.0(BB)V;		// javacard/framework/OwnerPIN.<init>(BB)V
+		instanceFieldRef 1.2 Wallet/privateKey;
 		// 3
 		staticMethodRef 0.3.0()V;		// javacard/framework/Applet.<init>()V
 		// 4
@@ -62,18 +64,68 @@
 			.descriptor	Ljavacard/framework/APDU;	0.10;
 
 		// 18
-		virtualMethodRef 0.9.4()Z;		// isValidated()Z
+		staticMethodRef Wallet/sendPublicKey(Ljavacard/framework/APDU;)V;
+			.descriptor	Ljavacard/framework/APDU;	0.10;
+
 		// 19
-		virtualMethodRef 0.10.6()S;		// setIncomingAndReceive()S
+		staticMethodRef Wallet/receiveEncryptedPIN(Ljavacard/framework/APDU;)V;
+			.descriptor	Ljavacard/framework/APDU;	0.10;
+
 		// 20
-		.classRef 0.9;		// javacard/framework/OwnerPIN
+		virtualMethodRef 0.9.4()Z;		// isValidated()Z
 		// 21
-		virtualMethodRef 0.10.7()S;		// setOutgoing()S
+		virtualMethodRef 0.10.6()S;		// setIncomingAndReceive()S
 		// 22
-		virtualMethodRef 0.10.9(S)V;		// setOutgoingLength(S)V
+		.classRef 0.9;		// javacard/framework/OwnerPIN
 		// 23
-		virtualMethodRef 0.10.4(SS)V;		// sendBytes(SS)V
+		virtualMethodRef 0.10.7()S;		// setOutgoing()S
 		// 24
+		virtualMethodRef 0.10.9(S)V;		// setOutgoingLength(S)V
+		// 25
+		virtualMethodRef 0.10.4(SS)V;		// sendBytes(SS)V
+		// 26
+		.classRef 1.16;		// javacard/security/KeyPair
+		// 27
+		staticMethodRef 1.16.0(BS)V;		// javacard/security/KeyPair.<init>(BS)V
+		// 28
+		staticFieldRef 1.16 Wallet/basicKeyPair;
+		// 29
+		virtualMethodRef 1.16.1()V;		// genKeyPair()V
+		// 30
+		virtualMethodRef 1.16.2()Ljavacard/security/PrivateKey;;		// getPrivate()Ljavacard/security/PrivateKey;
+			.descriptor	Ljavacard/security/PrivateKey;	1.2;
+
+		// 31
+		staticMethodRef 0.9.0(BB)V;		// javacard/framework/OwnerPIN.<init>(BB)V
+		// 32
+		virtualMethodRef 1.16.3()Ljavacard/security/PublicKey;;		// getPublic()Ljavacard/security/PublicKey;
+			.descriptor	Ljavacard/security/PublicKey;	1.3;
+
+		// 33
+		.classRef 1.9;		// javacard/security/RSAPublicKey
+		// 34
+		virtualMethodRef 0.10.5([BSS)V;		// sendBytesLong([BSS)V
+		// 35
+		.classRef 1.12;		// javacard/security/CryptoException
+		// 36
+		staticMethodRef 1.13.0(BSZ)Ljavacard/security/Key;;		// javacard/security/KeyBuilder.buildKey(BSZ)Ljavacard/security/Key;
+			.descriptor	Ljavacard/security/Key;	1.0;
+
+		// 37
+		.classRef 1.8;		// javacard/security/RSAPrivateKey
+		// 38
+		staticMethodRef 2.1.0(BZ)Ljavacardx/crypto/Cipher;;		// javacardx/crypto/Cipher.getInstance(BZ)Ljavacardx/crypto/Cipher;
+			.descriptor	Ljavacardx/crypto/Cipher;	2.1;
+
+		// 39
+		virtualMethodRef 2.1.3(Ljavacard/security/Key;B)V;		// init(Ljavacard/security/Key;B)V
+			.descriptor	Ljavacard/security/Key;	1.0;
+
+		// 40
+		virtualMethodRef 2.1.1([BSS[BS)S;		// doFinal([BSS[BS)S
+		// 41
+		virtualMethodRef 1.12.1()S;		// getReason()S
+		// 42
 		virtualMethodRef 0.9.1([BSB)Z;		// check([BSB)Z
 	}
 
@@ -81,7 +133,9 @@
 
 		.fields {
 			 0.9 pin 0;		// Ljavacard/framework/OwnerPIN;
-			 short balance 1;		// S
+			private 1.2 privateKey 1;		// Ljavacard/security/PrivateKey;
+			 short balance 2;		// S
+			protected static 1.16 basicKeyPair 0;		// Ljavacard/security/KeyPair;
 			static final byte Wallet_CLA = -128;		// B
 			static final byte CVM_RULE_SIZE = 10;		// B
 			static final byte CVM_LIST_SIZE = 3;		// B
@@ -92,6 +146,8 @@
 			static final byte DEBIT = 64;		// B
 			static final byte GET_BALANCE = 80;		// B
 			static final byte SEND_CVM_LIST = 81;		// B
+			static final byte SEND_PUBLIC_KEY = 82;		// B
+			static final byte RECEIVE_ENCRYPTED_PIN = 83;		// B
 			static final short MAX_BALANCE = 32767;		// S
 			static final byte MAX_TRANSACTION_AMOUNT = 127;		// B
 			static final byte PIN_TRY_LIMIT = 3;		// B
@@ -124,11 +180,11 @@
 				L0:	aload_0;
 					invokespecial 3;		// javacard/framework/Applet.<init>()V
 					aload_0;
-					new 20;		// javacard/framework/OwnerPIN
+					new 22;		// javacard/framework/OwnerPIN
 					dup;
 					sconst_3;
 					bspush 8;
-					invokespecial 2;		// javacard/framework/OwnerPIN.<init>(BB)V
+					invokespecial 31;		// javacard/framework/OwnerPIN.<init>(BB)V
 					putfield_a 0;		// reference com/sun/jcclassic/samples/wallet/Wallet.pin
 					aload_1;
 					sload_2;
@@ -230,7 +286,7 @@
 				L7:	aload_2;
 					sconst_1;
 					baload;
-					slookupswitch L13 5 32 L11 48 L10 64 L9 80 L8 81 L12;
+					slookupswitch L15 7 32 L11 48 L10 64 L9 80 L8 81 L12 82 L13 83 L14;
 				L8:	aload_0;
 					aload_1;
 					invokespecial 13;		// com/sun/jcclassic/samples/wallet/Wallet.getBalance(Ljavacard/framework/APDU;)V
@@ -251,7 +307,15 @@
 					aload_1;
 					invokespecial 17;		// com/sun/jcclassic/samples/wallet/Wallet.sendCVMList(Ljavacard/framework/APDU;)V
 					return;
-				L13:	sspush 27904;
+				L13:	aload_0;
+					aload_1;
+					invokespecial 18;		// com/sun/jcclassic/samples/wallet/Wallet.sendPublicKey(Ljavacard/framework/APDU;)V
+					return;
+				L14:	aload_0;
+					aload_1;
+					invokespecial 19;		// com/sun/jcclassic/samples/wallet/Wallet.receiveEncryptedPIN(Ljavacard/framework/APDU;)V
+					return;
+				L15:	sspush 27904;
 					invokestatic 12;		// javacard/framework/ISOException.throwIt(S)V
 					return;
 		}
@@ -263,7 +327,7 @@
 			.descriptor	Ljavacard/framework/APDU;	0.10;
 
 				L0:	getfield_a_this 0;		// reference com/sun/jcclassic/samples/wallet/Wallet.pin
-					invokevirtual 18;		// isValidated()Z
+					invokevirtual 20;		// isValidated()Z
 					ifne L2;
 				L1:	sspush 25345;
 					invokestatic 12;		// javacard/framework/ISOException.throwIt(S)V
@@ -275,7 +339,7 @@
 					baload;
 					sstore_3;
 				L4:	aload_1;
-					invokevirtual 19;		// setIncomingAndReceive()S
+					invokevirtual 21;		// setIncomingAndReceive()S
 					s2b;
 					sstore 4;
 				L5:	sload_3;
@@ -319,7 +383,7 @@
 			.descriptor	Ljavacard/framework/APDU;	0.10;
 
 				L0:	getfield_a_this 0;		// reference com/sun/jcclassic/samples/wallet/Wallet.pin
-					invokevirtual 18;		// isValidated()Z
+					invokevirtual 20;		// isValidated()Z
 					ifne L2;
 				L1:	sspush 25345;
 					invokestatic 12;		// javacard/framework/ISOException.throwIt(S)V
@@ -331,7 +395,7 @@
 					baload;
 					sstore_3;
 				L4:	aload_1;
-					invokevirtual 19;		// setIncomingAndReceive()S
+					invokevirtual 21;		// setIncomingAndReceive()S
 					s2b;
 					sstore 4;
 				L5:	sload_3;
@@ -364,6 +428,8 @@
 					sload 5;
 					ssub;
 					putfield_s 1;		// short com/sun/jcclassic/samples/wallet/Wallet.balance
+					getfield_a_this 0;		// reference com/sun/jcclassic/samples/wallet/Wallet.pin
+					invokevirtual 9;		// reset()V
 					return;
 		}
 
@@ -377,7 +443,7 @@
 					invokevirtual 10;		// getBuffer()[B
 					astore_2;
 				L1:	aload_1;
-					invokevirtual 21;		// setOutgoing()S
+					invokevirtual 23;		// setOutgoing()S
 					sstore_3;
 				L2:	sload_3;
 					bspush 30;
@@ -386,7 +452,7 @@
 					invokestatic 12;		// javacard/framework/ISOException.throwIt(S)V
 				L4:	aload_1;
 					bspush 30;
-					invokevirtual 22;		// setOutgoingLength(S)V
+					invokevirtual 24;		// setOutgoingLength(S)V
 					aload_2;
 					sconst_0;
 					sconst_0;
@@ -510,8 +576,667 @@
 					aload_1;
 					sconst_0;
 					bspush 30;
-					invokevirtual 23;		// sendBytes(SS)V
+					invokevirtual 25;		// sendBytes(SS)V
 					return;
+		}
+
+		.method private sendPublicKey(Ljavacard/framework/APDU;)V {
+			.stack 4;
+			.locals 2;
+
+			.descriptor	Ljavacard/framework/APDU;	0.10;
+
+				L0:	aload_1;
+					invokevirtual 23;		// setOutgoing()S
+					sstore_2;
+				L1:	new 26;		// javacard/security/KeyPair
+					dup;
+					sconst_1;
+					sspush 512;
+					invokespecial 27;		// javacard/security/KeyPair.<init>(BS)V
+					putstatic_a 28;		// reference com/sun/jcclassic/samples/wallet/Wallet.basicKeyPair
+					getstatic_a 28;		// reference com/sun/jcclassic/samples/wallet/Wallet.basicKeyPair
+					invokevirtual 29;		// genKeyPair()V
+					aload_0;
+					getstatic_a 28;		// reference com/sun/jcclassic/samples/wallet/Wallet.basicKeyPair
+					invokevirtual 30;		// getPrivate()Ljavacard/security/PrivateKey;
+					putfield_a 2;		// reference com/sun/jcclassic/samples/wallet/Wallet.privateKey
+					sload_2;
+					newarray 11;
+					astore_3;
+				L2:	getstatic_a 28;		// reference com/sun/jcclassic/samples/wallet/Wallet.basicKeyPair
+					invokevirtual 32;		// getPublic()Ljavacard/security/PublicKey;
+					checkcast 0 33;		// T_CLASSORINTERFACE javacard/security/RSAPublicKey
+					aload_3;
+					sconst_0;
+					invokeinterface 3 33 4;		// javacard/security/RSAPublicKey
+					pop;
+					getstatic_a 28;		// reference com/sun/jcclassic/samples/wallet/Wallet.basicKeyPair
+					invokevirtual 32;		// getPublic()Ljavacard/security/PublicKey;
+					checkcast 0 33;		// T_CLASSORINTERFACE javacard/security/RSAPublicKey
+					aload_3;
+					sconst_3;
+					invokeinterface 3 33 5;		// javacard/security/RSAPublicKey
+					pop;
+					aload_1;
+					sload_2;
+					invokevirtual 24;		// setOutgoingLength(S)V
+					aload_1;
+					aload_3;
+					sconst_0;
+					sload_2;
+					invokevirtual 34;		// sendBytesLong([BSS)V
+					return;
+		}
+
+		.method private receiveEncryptedPIN(Ljavacard/framework/APDU;)V {
+			.stack 6;
+			.locals 8;
+
+			.descriptor	Ljavacard/framework/APDU;	0.10;
+
+				L0:	aload_1;
+					invokevirtual 10;		// getBuffer()[B
+					astore_2;
+				L1:	aload_2;
+					sconst_4;
+					baload;
+					sstore_3;
+				L2:	aload_1;
+					invokevirtual 21;		// setIncomingAndReceive()S
+					s2b;
+					sstore 4;
+				L3:	sconst_5;
+					sspush 512;
+					sconst_0;
+					invokestatic 36;		// javacard/security/KeyBuilder.buildKey(BSZ)Ljavacard/security/Key;
+					checkcast 0 37;		// T_CLASSORINTERFACE javacard/security/RSAPrivateKey
+					astore 5;
+				L4:	bspush 64;
+					newarray 11;
+					dup;
+					sconst_0;
+					bspush -117;
+					bastore;
+					dup;
+					sconst_1;
+					bspush 102;
+					bastore;
+					dup;
+					sconst_2;
+					bspush 38;
+					bastore;
+					dup;
+					sconst_3;
+					bspush -25;
+					bastore;
+					dup;
+					sconst_4;
+					bspush 11;
+					bastore;
+					dup;
+					sconst_5;
+					bspush 111;
+					bastore;
+					dup;
+					bspush 6;
+					bspush 15;
+					bastore;
+					dup;
+					bspush 7;
+					bspush -69;
+					bastore;
+					dup;
+					bspush 8;
+					bspush 105;
+					bastore;
+					dup;
+					bspush 9;
+					bspush 99;
+					bastore;
+					dup;
+					bspush 10;
+					bspush -58;
+					bastore;
+					dup;
+					bspush 11;
+					bspush -2;
+					bastore;
+					dup;
+					bspush 12;
+					bspush -20;
+					bastore;
+					dup;
+					bspush 13;
+					bspush 121;
+					bastore;
+					dup;
+					bspush 14;
+					bspush 71;
+					bastore;
+					dup;
+					bspush 15;
+					bspush 9;
+					bastore;
+					dup;
+					bspush 16;
+					bspush 24;
+					bastore;
+					dup;
+					bspush 17;
+					bspush -119;
+					bastore;
+					dup;
+					bspush 18;
+					bspush 127;
+					bastore;
+					dup;
+					bspush 19;
+					bspush -93;
+					bastore;
+					dup;
+					bspush 20;
+					bspush 52;
+					bastore;
+					dup;
+					bspush 21;
+					bspush 76;
+					bastore;
+					dup;
+					bspush 22;
+					bspush 26;
+					bastore;
+					dup;
+					bspush 23;
+					bspush 25;
+					bastore;
+					dup;
+					bspush 24;
+					bspush 76;
+					bastore;
+					dup;
+					bspush 25;
+					bspush 28;
+					bastore;
+					dup;
+					bspush 26;
+					bspush 67;
+					bastore;
+					dup;
+					bspush 27;
+					bspush 12;
+					bastore;
+					dup;
+					bspush 28;
+					bspush 57;
+					bastore;
+					dup;
+					bspush 29;
+					bspush 58;
+					bastore;
+					dup;
+					bspush 30;
+					bspush 63;
+					bastore;
+					dup;
+					bspush 31;
+					bspush 120;
+					bastore;
+					dup;
+					bspush 32;
+					bspush 95;
+					bastore;
+					dup;
+					bspush 33;
+					bspush 112;
+					bastore;
+					dup;
+					bspush 34;
+					bspush 62;
+					bastore;
+					dup;
+					bspush 35;
+					bspush 6;
+					bastore;
+					dup;
+					bspush 36;
+					bspush -51;
+					bastore;
+					dup;
+					bspush 37;
+					bspush 18;
+					bastore;
+					dup;
+					bspush 38;
+					bspush -16;
+					bastore;
+					dup;
+					bspush 39;
+					bspush 60;
+					bastore;
+					dup;
+					bspush 40;
+					bspush -37;
+					bastore;
+					dup;
+					bspush 41;
+					bspush 107;
+					bastore;
+					dup;
+					bspush 42;
+					bspush 18;
+					bastore;
+					dup;
+					bspush 43;
+					bspush -4;
+					bastore;
+					dup;
+					bspush 44;
+					bspush -86;
+					bastore;
+					dup;
+					bspush 45;
+					bspush -4;
+					bastore;
+					dup;
+					bspush 46;
+					bspush 54;
+					bastore;
+					dup;
+					bspush 47;
+					bspush 83;
+					bastore;
+					dup;
+					bspush 48;
+					bspush 55;
+					bastore;
+					dup;
+					bspush 49;
+					bspush -36;
+					bastore;
+					dup;
+					bspush 50;
+					bspush -85;
+					bastore;
+					dup;
+					bspush 51;
+					bspush -63;
+					bastore;
+					dup;
+					bspush 52;
+					bspush 76;
+					bastore;
+					dup;
+					bspush 53;
+					bspush -10;
+					bastore;
+					dup;
+					bspush 54;
+					bspush 117;
+					bastore;
+					dup;
+					bspush 55;
+					bspush -97;
+					bastore;
+					dup;
+					bspush 56;
+					bspush -25;
+					bastore;
+					dup;
+					bspush 57;
+					bspush -78;
+					bastore;
+					dup;
+					bspush 58;
+					bspush 120;
+					bastore;
+					dup;
+					bspush 59;
+					bspush -36;
+					bastore;
+					dup;
+					bspush 60;
+					bspush 9;
+					bastore;
+					dup;
+					bspush 61;
+					bspush -68;
+					bastore;
+					dup;
+					bspush 62;
+					bspush -3;
+					bastore;
+					dup;
+					bspush 63;
+					bspush 107;
+					bastore;
+					astore 6;
+				L5:	bspush 64;
+					newarray 11;
+					dup;
+					sconst_0;
+					bspush -122;
+					bastore;
+					dup;
+					sconst_1;
+					bspush 116;
+					bastore;
+					dup;
+					sconst_2;
+					bspush -80;
+					bastore;
+					dup;
+					sconst_3;
+					bspush 127;
+					bastore;
+					dup;
+					sconst_4;
+					bspush 88;
+					bastore;
+					dup;
+					sconst_5;
+					bspush 98;
+					bastore;
+					dup;
+					bspush 6;
+					bspush -10;
+					bastore;
+					dup;
+					bspush 7;
+					bspush -116;
+					bastore;
+					dup;
+					bspush 8;
+					bspush -79;
+					bastore;
+					dup;
+					bspush 9;
+					bspush 57;
+					bastore;
+					dup;
+					bspush 10;
+					bspush -63;
+					bastore;
+					dup;
+					bspush 11;
+					bspush 94;
+					bastore;
+					dup;
+					bspush 12;
+					bspush 111;
+					bastore;
+					dup;
+					bspush 13;
+					bspush -33;
+					bastore;
+					dup;
+					bspush 14;
+					bspush 6;
+					bastore;
+					dup;
+					bspush 15;
+					bspush -86;
+					bastore;
+					dup;
+					bspush 16;
+					bspush 122;
+					bastore;
+					dup;
+					bspush 17;
+					bspush 85;
+					bastore;
+					dup;
+					bspush 18;
+					bspush 93;
+					bastore;
+					dup;
+					bspush 19;
+					bspush -100;
+					bastore;
+					dup;
+					bspush 20;
+					bspush -96;
+					bastore;
+					dup;
+					bspush 21;
+					bspush -69;
+					bastore;
+					dup;
+					bspush 22;
+					bspush -22;
+					bastore;
+					dup;
+					bspush 23;
+					bspush -52;
+					bastore;
+					dup;
+					bspush 24;
+					bspush -115;
+					bastore;
+					dup;
+					bspush 25;
+					bspush -62;
+					bastore;
+					dup;
+					bspush 26;
+					bspush 16;
+					bastore;
+					dup;
+					bspush 27;
+					bspush -43;
+					bastore;
+					dup;
+					bspush 28;
+					bspush -64;
+					bastore;
+					dup;
+					bspush 29;
+					bspush 121;
+					bastore;
+					dup;
+					bspush 30;
+					bspush 51;
+					bastore;
+					dup;
+					bspush 31;
+					bspush 111;
+					bastore;
+					dup;
+					bspush 32;
+					bspush -50;
+					bastore;
+					dup;
+					bspush 33;
+					bspush 45;
+					bastore;
+					dup;
+					bspush 34;
+					bspush -20;
+					bastore;
+					dup;
+					bspush 35;
+					bspush -75;
+					bastore;
+					dup;
+					bspush 36;
+					bspush 119;
+					bastore;
+					dup;
+					bspush 37;
+					bspush -51;
+					bastore;
+					dup;
+					bspush 38;
+					bspush -111;
+					bastore;
+					dup;
+					bspush 39;
+					bspush 99;
+					bastore;
+					dup;
+					bspush 40;
+					bspush -112;
+					bastore;
+					dup;
+					bspush 41;
+					bspush 91;
+					bastore;
+					dup;
+					bspush 42;
+					bspush -112;
+					bastore;
+					dup;
+					bspush 43;
+					bspush -95;
+					bastore;
+					dup;
+					bspush 44;
+					bspush 72;
+					bastore;
+					dup;
+					bspush 45;
+					bspush -13;
+					bastore;
+					dup;
+					bspush 46;
+					bspush 14;
+					bastore;
+					dup;
+					bspush 47;
+					bspush 16;
+					bastore;
+					dup;
+					bspush 48;
+					bspush 18;
+					bastore;
+					dup;
+					bspush 49;
+					bspush 75;
+					bastore;
+					dup;
+					bspush 50;
+					sconst_5;
+					bastore;
+					dup;
+					bspush 51;
+					bspush -97;
+					bastore;
+					dup;
+					bspush 52;
+					bspush -122;
+					bastore;
+					dup;
+					bspush 53;
+					bspush -119;
+					bastore;
+					dup;
+					bspush 54;
+					bspush -120;
+					bastore;
+					dup;
+					bspush 55;
+					bspush 41;
+					bastore;
+					dup;
+					bspush 56;
+					bspush 45;
+					bastore;
+					dup;
+					bspush 57;
+					bspush 105;
+					bastore;
+					dup;
+					bspush 58;
+					bspush 72;
+					bastore;
+					dup;
+					bspush 59;
+					bspush -60;
+					bastore;
+					dup;
+					bspush 60;
+					bspush 98;
+					bastore;
+					dup;
+					bspush 61;
+					bspush -8;
+					bastore;
+					dup;
+					bspush 62;
+					bspush -21;
+					bastore;
+					dup;
+					bspush 63;
+					bspush 81;
+					bastore;
+					astore 7;
+				L6:	aload 5;
+					aload 7;
+					sconst_0;
+					aload 7;
+					arraylength;
+					invokeinterface 4 37 6;		// javacard/security/RSAPrivateKey
+					aload 5;
+					aload 6;
+					sconst_0;
+					aload 6;
+					arraylength;
+					invokeinterface 4 37 7;		// javacard/security/RSAPrivateKey
+					bspush 10;
+					sconst_0;
+					invokestatic 38;		// javacardx/crypto/Cipher.getInstance(BZ)Ljavacardx/crypto/Cipher;
+					astore 8;
+				L7:	aload 8;
+					aload 5;
+					sconst_1;
+					invokevirtual 39;		// init(Ljavacard/security/Key;B)V
+					aload 8;
+					aload_2;
+					sconst_5;
+					sload_3;
+					aload_2;
+					sconst_0;
+					invokevirtual 40;		// doFinal([BSS[BS)S
+					sstore 9;
+				L8:	aload_2;
+					sconst_0;
+					baload;
+					sconst_1;
+					if_scmpne L13;
+				L9:	aload_2;
+					sconst_1;
+					baload;
+					sconst_2;
+					if_scmpne L13;
+				L10:	aload_2;
+					sconst_2;
+					baload;
+					sconst_3;
+					if_scmpne L13;
+				L11:	aload_2;
+					sconst_3;
+					baload;
+					sconst_4;
+					if_scmpne L13;
+				L12:	aload_2;
+					sconst_4;
+					baload;
+					sconst_5;
+					if_scmpeq L18;
+				L13:	sspush 25344;
+					invokestatic 12;		// javacard/framework/ISOException.throwIt(S)V
+				L14:	goto L18;
+				L15:	astore 5;
+				L16:	aload 5;
+					invokevirtual 41;		// getReason()S
+					sstore 6;
+				L17:	sload 6;
+					invokestatic 12;		// javacard/framework/ISOException.throwIt(S)V
+				L18:	return;
+			.exceptionTable {
+				// start_block end_block handler_block catch_type_index
+				L3 L14 L15 35;
+			}
 		}
 
 		.method private getBalance(Ljavacard/framework/APDU;)V {
@@ -524,7 +1249,7 @@
 					invokevirtual 10;		// getBuffer()[B
 					astore_2;
 				L1:	aload_1;
-					invokevirtual 21;		// setOutgoing()S
+					invokevirtual 23;		// setOutgoing()S
 					sstore_3;
 				L2:	sload_3;
 					sconst_2;
@@ -533,7 +1258,7 @@
 					invokestatic 12;		// javacard/framework/ISOException.throwIt(S)V
 				L4:	aload_1;
 					sconst_2;
-					invokevirtual 22;		// setOutgoingLength(S)V
+					invokevirtual 24;		// setOutgoingLength(S)V
 					aload_2;
 					sconst_0;
 					getfield_s_this 1;		// short com/sun/jcclassic/samples/wallet/Wallet.balance
@@ -551,7 +1276,7 @@
 					aload_1;
 					sconst_0;
 					sconst_2;
-					invokevirtual 23;		// sendBytes(SS)V
+					invokevirtual 25;		// sendBytes(SS)V
 					return;
 		}
 
@@ -565,14 +1290,14 @@
 					invokevirtual 10;		// getBuffer()[B
 					astore_2;
 				L1:	aload_1;
-					invokevirtual 19;		// setIncomingAndReceive()S
+					invokevirtual 21;		// setIncomingAndReceive()S
 					s2b;
 					sstore_3;
 				L2:	getfield_a_this 0;		// reference com/sun/jcclassic/samples/wallet/Wallet.pin
 					aload_2;
 					sconst_5;
 					sload_3;
-					invokevirtual 24;		// check([BSB)Z
+					invokevirtual 42;		// check([BSB)Z
 					ifne L4;
 				L3:	sspush 25344;
 					invokestatic 12;		// javacard/framework/ISOException.throwIt(S)V

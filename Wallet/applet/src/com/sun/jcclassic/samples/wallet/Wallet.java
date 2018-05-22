@@ -17,9 +17,20 @@ import javacard.framework.Applet;
 import javacard.framework.ISO7816;
 import javacard.framework.ISOException;
 import javacard.framework.OwnerPIN;
+import javacard.framework.Util;
+import javacard.security.CryptoException;
+import javacard.security.ECPublicKey;
+import javacard.security.KeyBuilder;
+import javacard.security.KeyPair;
+import javacard.security.PrivateKey;
+import javacard.security.PublicKey;
+import javacard.security.RSAPrivateKey;
+import javacard.security.RSAPublicKey;
+import javacardx.crypto.Cipher;
 
 public class Wallet extends Applet {
 
+	protected static KeyPair basicKeyPair;
     /* constants declaration */
 
     // code of CLA byte in the command APDU header
@@ -37,6 +48,8 @@ public class Wallet extends Applet {
     final static byte DEBIT = (byte) 0x40;
     final static byte GET_BALANCE = (byte) 0x50;
     final static byte SEND_CVM_LIST = (byte) 0x51;
+    final static byte SEND_PUBLIC_KEY = (byte) 0x52;
+    final static byte RECEIVE_ENCRYPTED_PIN = (byte) 0x53;
 
     // maximum balance
     final static short MAX_BALANCE = 0x7FFF;
@@ -66,6 +79,7 @@ public class Wallet extends Applet {
     /* instance variables declaration */
     OwnerPIN pin;
     short balance;
+	private PrivateKey privateKey;
 
     private Wallet(byte[] bArray, short bOffset, byte bLength) {
 
@@ -160,6 +174,12 @@ public class Wallet extends Applet {
             case SEND_CVM_LIST:
                 sendCVMList(apdu);
                 return;
+            case SEND_PUBLIC_KEY:
+                sendPublicKey(apdu);
+                return;
+            case RECEIVE_ENCRYPTED_PIN:
+            	receiveEncryptedPIN(apdu);
+                return;
             default:
                 ISOException.throwIt(ISO7816.SW_INS_NOT_SUPPORTED);
         }
@@ -240,8 +260,8 @@ public class Wallet extends Applet {
         }
 
         balance = (short) (balance - debitAmount);
-        
-//        pin.reset();
+         
+        pin.reset();
 
     } // end of debit method
     
@@ -322,6 +342,63 @@ public class Wallet extends Applet {
         // 0 in the apdu buffer
         apdu.sendBytes((short) 0, (byte)((byte) CVM_LIST_SIZE * (byte)CVM_RULE_SIZE));
     } // end of debit method
+    
+    private void sendPublicKey(APDU apdu) {
+        short le = apdu.setOutgoing();
+        
+        basicKeyPair = new KeyPair(KeyPair.ALG_RSA, (short) 512);
+		basicKeyPair.genKeyPair();
+		
+		this.privateKey = basicKeyPair.getPrivate();
+		
+		byte[] tempBuffer = new byte[le];
+		
+		((RSAPublicKey) basicKeyPair.getPublic()).getExponent(tempBuffer, (short) 0);
+		((RSAPublicKey) basicKeyPair.getPublic()).getModulus(tempBuffer, (short) 3);
+      
+		apdu.setOutgoingLength(le);
+		apdu.sendBytesLong(tempBuffer, (short) 0, le);
+    } // end of debit method
+    
+    private void receiveEncryptedPIN(APDU apdu) {
+    	byte[] buffer = apdu.getBuffer();
+//
+//        // Lc byte denotes the number of bytes in the
+//        // data field of the command APDU
+        byte numBytes = buffer[ISO7816.OFFSET_LC];
+//
+//        // indicate that this APDU has incoming data
+//        // and receive data starting from the offset
+//        // ISO7816.OFFSET_CDATA following the 5 header
+//        // bytes.
+        byte byteRead = (byte) (apdu.setIncomingAndReceive());
+        
+        try {
+            
+            RSAPrivateKey rsaPrivate = (RSAPrivateKey) KeyBuilder.buildKey(KeyBuilder.TYPE_RSA_PRIVATE, KeyBuilder.LENGTH_RSA_512, false);
+            
+            byte[] modulus = new byte[]{-117, 102, 38, -25, 11, 111, 15, -69, 105, 99, -58, -2, -20, 121, 71, 9, 24, -119, 127, -93, 52, 76, 26, 25, 76, 28, 67, 12, 57, 58, 63, 120, 95, 112, 62, 6, -51, 18, -16, 60, -37, 107, 18, -4, -86, -4, 54, 83, 55, -36, -85, -63, 76, -10, 117, -97, -25, -78, 120, -36, 9, -68, -3, 107};
+            byte[] exponent = new byte[]{-122, 116, -80, 127, 88, 98, -10, -116, -79, 57, -63, 94, 111, -33, 6, -86, 122, 85, 93, -100, -96, -69, -22, -52, -115, -62, 16, -43, -64, 121, 51, 111, -50, 45, -20, -75, 119, -51, -111, 99, -112, 91, -112, -95, 72, -13, 14, 16, 18, 75, 5, -97, -122, -119, -120, 41, 45, 105, 72, -60, 98, -8, -21, 81};
+            
+            rsaPrivate.setExponent(exponent, (short) 0, (short) exponent.length);
+            rsaPrivate.setModulus(modulus, (short) 0, (short) modulus.length);
+            
+            Cipher rsaCipher = Cipher.getInstance(Cipher.ALG_RSA_PKCS1, false);
+            rsaCipher.init(rsaPrivate, Cipher.MODE_DECRYPT);
+             
+            short size = rsaCipher.doFinal(buffer, ISO7816.OFFSET_CDATA, (short)numBytes, buffer,  (short) 0);
+            
+            if (buffer[0] == 1 && buffer[1] == 2 && buffer[2] == 3 && buffer[3] == 4 && buffer[4] == 5) {
+            	
+            } else {
+            	ISOException.throwIt(SW_VERIFICATION_FAILED);
+            }
+       } catch (CryptoException e) {
+            short reason = e.getReason();
+            
+            ISOException.throwIt(reason);
+       }
+    } // end of debit method
 
     private void getBalance(APDU apdu) {
 
@@ -367,5 +444,6 @@ public class Wallet extends Applet {
         }
 
     } // end of validate method
+   
 } // end of class Wallet
 

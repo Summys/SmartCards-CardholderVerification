@@ -4,27 +4,21 @@ import com.sun.javacard.apduio.Apdu;
 import com.sun.javacard.apduio.CadClientInterface;
 import com.sun.javacard.apduio.CadDevice;
 import com.sun.javacard.apduio.CadTransportException;
-import org.bouncycastle.crypto.AsymmetricCipherKeyPair;
-import org.bouncycastle.crypto.generators.RSAKeyPairGenerator;
-import org.bouncycastle.crypto.params.RSAKeyGenerationParameters;
-import org.bouncycastle.crypto.prng.SP800SecureRandom;
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.util.test.FixedSecureRandom;
-import org.bouncycastle.util.test.TestRandomBigInteger;
-import org.bouncycastle.util.test.TestRandomData;
-
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.math.BigInteger;
+import javax.crypto.BadPaddingException;
+import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import java.io.*;
 import java.net.Socket;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.*;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.InvalidKeySpecException;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -35,9 +29,11 @@ public class Main {
             "F:\\Facultate\\SmartCards\\SmartCards-LoyalityApplet\\Wallet\\applet\\apdu_scripts\\cap-com.sun.jcclassic.samples.wallet.script";
 
     private static final byte[][] TERMINAL_CVM_LIST = new byte[][]{new byte[]{50, 95, 6}, new byte[]{100, 65, 6}, new byte[]{100, 68, 7}};
+    private static final String PUBLIC_KEY_FILENAME = "F:\\Facultate\\SmartCards\\SmartCards-CardholderVerification\\public.txt";
     private static byte[][] CARD_CVM_LIST;
 
-    public static void main(String[] args) throws IOException, CadTransportException, NoSuchAlgorithmException {
+    public static void main(String[] args) throws IOException, CadTransportException, GeneralSecurityException {
+        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
         CadClientInterface cad;
         Socket sock;
         sock = new Socket("localhost", 9025);
@@ -158,7 +154,38 @@ public class Main {
 
         System.out.println(apdu);
 
-        debitSum(cad, (byte)120);
+        // receive the public key
+//        apdu = new Apdu();
+//        apdu.command = new byte[]{(byte) 0x80, (byte) 0x52, 0x00, 0x00};
+//        apdu.setLe(3 + 64);
+//
+//        cad.exchangeApdu(apdu);
+//
+//        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
+//        keyGen.initialize(512);
+//        KeyPair keyPair = keyGen.generateKeyPair();
+//
+//        RSAPublicKeySpec spec = new RSAPublicKeySpec(new BigInteger(Arrays.copyOfRange(apdu.dataOut, 3, 3 + 64)), new BigInteger(Arrays.copyOfRange(apdu.dataOut, 0, 3)));
+//        KeyFactory factory = KeyFactory.getInstance("RSA");
+//        PublicKey pub = factory.generatePublic(spec);
+//
+//        System.out.println(apdu);
+
+        BufferedReader br = new BufferedReader(new FileReader(PUBLIC_KEY_FILENAME));
+        String encodedPublicKey = br.readLine();
+        RSAPublicKey publicKey = (RSAPublicKey) loadPublicKey(encodedPublicKey);
+
+        // send encrypted PIN
+        apdu = new Apdu();
+        apdu.command = new byte[]{(byte) 0x80, (byte) 0x53, 0x00, 0x00};
+        Cipher cipher = Cipher.getInstance("RSA/None/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+
+        apdu.setDataIn(cipher.doFinal(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05}));
+
+        cad.exchangeApdu(apdu);
+
+        System.out.println(apdu);
 
         cad.powerDown();
     }
@@ -183,7 +210,7 @@ public class Main {
         System.out.println(apdu);
     }
 
-    private static void debitSum(CadClientInterface cad, byte amount) throws IOException, CadTransportException, NoSuchAlgorithmException {
+    private static void debitSum(CadClientInterface cad, byte amount) throws IOException, CadTransportException {
         for (byte[] CVMRule : CARD_CVM_LIST) {
             boolean ok = false;
             for (byte[] terminalCVMRule : TERMINAL_CVM_LIST) {
@@ -225,18 +252,7 @@ public class Main {
                 }
                 case 0x07: {
                     if (CVMRule[0] <= amount) {
-                        RSAKeyPairGenerator generator = new RSAKeyPairGenerator();
-                        generator.init(new RSAKeyGenerationParameters
-                                (
-                                        new BigInteger("10001", 16),//publicExponent
-                                        new SecureRandom(),//pseudorandom number generator
-                                        4096,//strength
-                                        80//certainty
-                                ));
 
-                        AsymmetricCipherKeyPair asymmetricCipherKeyPair = generator.generateKeyPair();
-                        System.out.println(asymmetricCipherKeyPair.getPrivate());
-                        System.out.println(asymmetricCipherKeyPair.getPublic());
                     }
                     break;
                 }
@@ -259,5 +275,12 @@ public class Main {
         cad.exchangeApdu(apdu);
 
         System.out.println(apdu);
+    }
+
+    private static PublicKey loadPublicKey(String stored) throws GeneralSecurityException {
+        byte[] data = Base64.getDecoder().decode(stored);
+        X509EncodedKeySpec spec = new X509EncodedKeySpec(data);
+        KeyFactory fact = KeyFactory.getInstance("RSA");
+        return fact.generatePublic(spec);
     }
 }
