@@ -31,6 +31,7 @@ import javacardx.crypto.Cipher;
 public class Wallet extends Applet {
 
 	protected static KeyPair basicKeyPair;
+	
     /* constants declaration */
 
     // code of CLA byte in the command APDU header
@@ -79,6 +80,7 @@ public class Wallet extends Applet {
     /* instance variables declaration */
     OwnerPIN pin;
     short balance;
+    private boolean wasEncrypted = false;
 	private PrivateKey privateKey;
 
     private Wallet(byte[] bArray, short bOffset, byte bLength) {
@@ -230,12 +232,6 @@ public class Wallet extends Applet {
     } // end of deposit method
 
     private void debit(APDU apdu) {
-
-        // access authentication
-        if (!pin.isValidated()) {
-            ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
-        }
-
         byte[] buffer = apdu.getBuffer();
 
         byte numBytes = (buffer[ISO7816.OFFSET_LC]);
@@ -249,20 +245,25 @@ public class Wallet extends Applet {
         // get debit amount
         byte debitAmount = buffer[ISO7816.OFFSET_CDATA];
 
-        // check debit amount
-        if ((debitAmount > MAX_TRANSACTION_AMOUNT) || (debitAmount < 0)) {
-            ISOException.throwIt(SW_INVALID_TRANSACTION_AMOUNT);
+        // access authentication
+        if (debitAmount <= AMOUNT1 || (debitAmount <= AMOUNT2 && pin.isValidated()) || (debitAmount > AMOUNT2 && pin.isValidated() && wasEncrypted == true)) {
+            // check debit amount
+            if ((debitAmount > MAX_TRANSACTION_AMOUNT) || (debitAmount < 0)) {
+                ISOException.throwIt(SW_INVALID_TRANSACTION_AMOUNT);
+            }
+
+            // check the new balance
+            if ((short) (balance - debitAmount) < (short) 0) {
+                ISOException.throwIt(SW_NEGATIVE_BALANCE);
+            }
+
+            balance = (short) (balance - debitAmount);
+             
+            pin.reset();
+            wasEncrypted = false;
+        } else {
+        	ISOException.throwIt(SW_PIN_VERIFICATION_REQUIRED);
         }
-
-        // check the new balance
-        if ((short) (balance - debitAmount) < (short) 0) {
-            ISOException.throwIt(SW_NEGATIVE_BALANCE);
-        }
-
-        balance = (short) (balance - debitAmount);
-         
-        pin.reset();
-
     } // end of debit method
     
     private void sendCVMList(APDU apdu) {
@@ -388,11 +389,11 @@ public class Wallet extends Applet {
              
             short size = rsaCipher.doFinal(buffer, ISO7816.OFFSET_CDATA, (short)numBytes, buffer,  (short) 0);
             
-            if (buffer[0] == 1 && buffer[1] == 2 && buffer[2] == 3 && buffer[3] == 4 && buffer[4] == 5) {
-            	
-            } else {
-            	ISOException.throwIt(SW_VERIFICATION_FAILED);
+            if (pin.check(buffer, (byte)0, (byte) 5) == false) {
+                ISOException.throwIt(SW_VERIFICATION_FAILED);
             }
+            
+            wasEncrypted = true;
        } catch (CryptoException e) {
             short reason = e.getReason();
             

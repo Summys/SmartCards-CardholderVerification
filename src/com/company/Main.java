@@ -147,47 +147,40 @@ public class Main {
         credit100(cad);
         credit100(cad);
 
-        // Get balance
+        getBalance(cad);
+
+        debitSum(cad, (byte) 25);
+
+        getBalance(cad);
+
+        debitSum(cad, (byte) 60);
+
+        getBalance(cad);
+
+        verifyInvalidUserPIN(cad);
+        sendDebitCommand(cad, (byte) 60);
+
+        getBalance(cad);
+
+        debitSum(cad, (byte) 120);
+
+        getBalance(cad);
+
+        sendInvalidEncryptedPIN(cad, getRsaPublicKey());
+        sendDebitCommand(cad, (byte) 120);
+
+        getBalance(cad);
+
+        cad.powerDown();
+    }
+
+    private static void getBalance(CadClientInterface cad) throws IOException, CadTransportException {
+        Apdu apdu;// Get balance
         apdu = new Apdu();
         apdu.command = new byte[]{(byte) 0x80, (byte) 0x50, 0x00, 0x00};
         cad.exchangeApdu(apdu);
 
         System.out.println(apdu);
-
-        // receive the public key
-//        apdu = new Apdu();
-//        apdu.command = new byte[]{(byte) 0x80, (byte) 0x52, 0x00, 0x00};
-//        apdu.setLe(3 + 64);
-//
-//        cad.exchangeApdu(apdu);
-//
-//        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-//        keyGen.initialize(512);
-//        KeyPair keyPair = keyGen.generateKeyPair();
-//
-//        RSAPublicKeySpec spec = new RSAPublicKeySpec(new BigInteger(Arrays.copyOfRange(apdu.dataOut, 3, 3 + 64)), new BigInteger(Arrays.copyOfRange(apdu.dataOut, 0, 3)));
-//        KeyFactory factory = KeyFactory.getInstance("RSA");
-//        PublicKey pub = factory.generatePublic(spec);
-//
-//        System.out.println(apdu);
-
-        BufferedReader br = new BufferedReader(new FileReader(PUBLIC_KEY_FILENAME));
-        String encodedPublicKey = br.readLine();
-        RSAPublicKey publicKey = (RSAPublicKey) loadPublicKey(encodedPublicKey);
-
-        // send encrypted PIN
-        apdu = new Apdu();
-        apdu.command = new byte[]{(byte) 0x80, (byte) 0x53, 0x00, 0x00};
-        Cipher cipher = Cipher.getInstance("RSA/None/PKCS1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
-
-        apdu.setDataIn(cipher.doFinal(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05}));
-
-        cad.exchangeApdu(apdu);
-
-        System.out.println(apdu);
-
-        cad.powerDown();
     }
 
     private static void verifyUserPIN(CadClientInterface cad) throws IOException, CadTransportException {
@@ -195,6 +188,16 @@ public class Main {
         apdu = new Apdu();
         apdu.command = new byte[]{(byte) 0x80, (byte) 0x20, 0x00, 0x00};
         apdu.setDataIn(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05});
+        cad.exchangeApdu(apdu);
+
+        System.out.println(apdu);
+    }
+
+    private static void verifyInvalidUserPIN(CadClientInterface cad) throws IOException, CadTransportException {
+        Apdu apdu;// verify PIN
+        apdu = new Apdu();
+        apdu.command = new byte[]{(byte) 0x80, (byte) 0x20, 0x00, 0x00};
+        apdu.setDataIn(new byte[]{0x01, 0x02, 0x03, 0x04, 0x06});
         cad.exchangeApdu(apdu);
 
         System.out.println(apdu);
@@ -210,7 +213,7 @@ public class Main {
         System.out.println(apdu);
     }
 
-    private static void debitSum(CadClientInterface cad, byte amount) throws IOException, CadTransportException {
+    private static void debitSum(CadClientInterface cad, byte amount) throws IOException, CadTransportException, GeneralSecurityException {
         for (byte[] CVMRule : CARD_CVM_LIST) {
             boolean ok = false;
             for (byte[] terminalCVMRule : TERMINAL_CVM_LIST) {
@@ -252,7 +255,14 @@ public class Main {
                 }
                 case 0x07: {
                     if (CVMRule[0] <= amount) {
+                        // load the public key
+                        RSAPublicKey publicKey = getRsaPublicKey();
 
+                        // send encrypted PIN
+                        sendEncryptedPIN(cad, publicKey);
+
+                        // Send debit command with amount$
+                        sendDebitCommand(cad, amount);
                     }
                     break;
                 }
@@ -266,10 +276,44 @@ public class Main {
 //        throw new UnsupportedOperationException("The terminal CVM");
     }
 
+    private static RSAPublicKey getRsaPublicKey() throws IOException, GeneralSecurityException {
+        BufferedReader br = new BufferedReader(new FileReader(PUBLIC_KEY_FILENAME));
+        String encodedPublicKey = br.readLine();
+        return (RSAPublicKey) loadPublicKey(encodedPublicKey);
+    }
+
+    private static void sendEncryptedPIN(CadClientInterface cad, RSAPublicKey publicKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException, CadTransportException {
+        Apdu apdu = new Apdu();
+        // send encrypted PIN
+        apdu.command = new byte[]{(byte) 0x80, (byte) 0x53, 0x00, 0x00};
+        Cipher cipher = Cipher.getInstance("RSA/None/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+
+        apdu.setDataIn(cipher.doFinal(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05}));
+
+        cad.exchangeApdu(apdu);
+
+        System.out.println(apdu);
+    }
+
+    private static void sendInvalidEncryptedPIN(CadClientInterface cad, RSAPublicKey publicKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException, CadTransportException {
+        Apdu apdu = new Apdu();
+        // send encrypted PIN
+        apdu.command = new byte[]{(byte) 0x80, (byte) 0x53, 0x00, 0x00};
+        Cipher cipher = Cipher.getInstance("RSA/None/PKCS1Padding");
+        cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+
+        apdu.setDataIn(cipher.doFinal(new byte[]{0x01, 0x02, 0x03, 0x04, 0x06}));
+
+        cad.exchangeApdu(apdu);
+
+        System.out.println(apdu);
+    }
+
     private static void sendDebitCommand(CadClientInterface cad, byte amount) throws IOException, CadTransportException {
         Apdu apdu;
         apdu = new Apdu();
-        apdu.command = new byte[]{(byte) 0x80, (byte) 0x20, 0x00, 0x00};
+        apdu.command = new byte[]{(byte) 0x80, (byte) 0x40, 0x00, 0x00};
         apdu.setDataIn(new byte[]{amount});
 
         cad.exchangeApdu(apdu);
