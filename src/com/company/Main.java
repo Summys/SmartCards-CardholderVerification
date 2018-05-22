@@ -166,10 +166,16 @@ public class Main {
 
         getBalance(cad);
 
-        sendInvalidEncryptedPIN(cad, getRsaPublicKey());
+        sendInvalidEncryptedPIN(cad, getRsaPublicKey(), getChallenge(cad));
         sendDebitCommand(cad, (byte) 120);
 
         getBalance(cad);
+
+        sendInvalidEncryptedPIN(cad, getRsaPublicKey(), (byte) 0);
+        sendDebitCommand(cad, (byte) 120);
+
+        getBalance(cad);
+
 
         cad.powerDown();
     }
@@ -258,11 +264,16 @@ public class Main {
                         // load the public key
                         RSAPublicKey publicKey = getRsaPublicKey();
 
+                        // Get challenge
+                        byte challenge = getChallenge(cad);
+
                         // send encrypted PIN
-                        sendEncryptedPIN(cad, publicKey);
+                        sendEncryptedPIN(cad, publicKey, challenge);
 
                         // Send debit command with amount$
                         sendDebitCommand(cad, amount);
+
+                        return;
                     }
                     break;
                 }
@@ -273,7 +284,19 @@ public class Main {
             }
         }
 
-//        throw new UnsupportedOperationException("The terminal CVM");
+        throw new UnsupportedOperationException("The terminal CVM");
+    }
+
+    private static byte getChallenge(CadClientInterface cad) throws IOException, CadTransportException {
+        // Get challenge
+        Apdu apdu = new Apdu();
+        apdu.command = new byte[]{(byte) 0x80, (byte) 0x52, 0x00, 0x00};
+
+        cad.exchangeApdu(apdu);
+
+        System.out.println(apdu);
+
+        return apdu.getDataOut()[0];
     }
 
     private static RSAPublicKey getRsaPublicKey() throws IOException, GeneralSecurityException {
@@ -282,28 +305,28 @@ public class Main {
         return (RSAPublicKey) loadPublicKey(encodedPublicKey);
     }
 
-    private static void sendEncryptedPIN(CadClientInterface cad, RSAPublicKey publicKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException, CadTransportException {
+    private static void sendEncryptedPIN(CadClientInterface cad, RSAPublicKey publicKey, byte challenge) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException, CadTransportException {
         Apdu apdu = new Apdu();
         // send encrypted PIN
         apdu.command = new byte[]{(byte) 0x80, (byte) 0x53, 0x00, 0x00};
         Cipher cipher = Cipher.getInstance("RSA/None/PKCS1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 
-        apdu.setDataIn(cipher.doFinal(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05}));
+        apdu.setDataIn(cipher.doFinal(new byte[]{0x01, 0x02, 0x03, 0x04, 0x05, challenge}));
 
         cad.exchangeApdu(apdu);
 
         System.out.println(apdu);
     }
 
-    private static void sendInvalidEncryptedPIN(CadClientInterface cad, RSAPublicKey publicKey) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException, CadTransportException {
+    private static void sendInvalidEncryptedPIN(CadClientInterface cad, RSAPublicKey publicKey, byte challenge) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException, CadTransportException {
         Apdu apdu = new Apdu();
         // send encrypted PIN
         apdu.command = new byte[]{(byte) 0x80, (byte) 0x53, 0x00, 0x00};
         Cipher cipher = Cipher.getInstance("RSA/None/PKCS1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, publicKey);
 
-        apdu.setDataIn(cipher.doFinal(new byte[]{0x01, 0x02, 0x03, 0x04, 0x06}));
+        apdu.setDataIn(cipher.doFinal(new byte[]{0x01, 0x02, 0x03, 0x04, 0x06, challenge}));
 
         cad.exchangeApdu(apdu);
 

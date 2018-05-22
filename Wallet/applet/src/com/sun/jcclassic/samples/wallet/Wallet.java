@@ -26,6 +26,7 @@ import javacard.security.PrivateKey;
 import javacard.security.PublicKey;
 import javacard.security.RSAPrivateKey;
 import javacard.security.RSAPublicKey;
+import javacard.security.RandomData;
 import javacardx.crypto.Cipher;
 
 public class Wallet extends Applet {
@@ -49,7 +50,7 @@ public class Wallet extends Applet {
     final static byte DEBIT = (byte) 0x40;
     final static byte GET_BALANCE = (byte) 0x50;
     final static byte SEND_CVM_LIST = (byte) 0x51;
-    final static byte SEND_PUBLIC_KEY = (byte) 0x52;
+    final static byte GET_CHALLENGE = (byte) 0x52;
     final static byte RECEIVE_ENCRYPTED_PIN = (byte) 0x53;
 
     // maximum balance
@@ -81,6 +82,7 @@ public class Wallet extends Applet {
     OwnerPIN pin;
     short balance;
     private boolean wasEncrypted = false;
+    byte challenge = 0;
 	private PrivateKey privateKey;
 
     private Wallet(byte[] bArray, short bOffset, byte bLength) {
@@ -176,8 +178,8 @@ public class Wallet extends Applet {
             case SEND_CVM_LIST:
                 sendCVMList(apdu);
                 return;
-            case SEND_PUBLIC_KEY:
-                sendPublicKey(apdu);
+            case GET_CHALLENGE:
+                getChallenge(apdu);
                 return;
             case RECEIVE_ENCRYPTED_PIN:
             	receiveEncryptedPIN(apdu);
@@ -344,21 +346,35 @@ public class Wallet extends Applet {
         apdu.sendBytes((short) 0, (byte)((byte) CVM_LIST_SIZE * (byte)CVM_RULE_SIZE));
     } // end of debit method
     
-    private void sendPublicKey(APDU apdu) {
+    private void getChallenge(APDU apdu) {
+        byte[] buffer = apdu.getBuffer();
+
+        // inform system that the applet has finished
+        // processing the command and the system should
+        // now prepare to construct a response APDU
+        // which contains data field
         short le = apdu.setOutgoing();
-        
-        basicKeyPair = new KeyPair(KeyPair.ALG_RSA, (short) 512);
-		basicKeyPair.genKeyPair();
-		
-		this.privateKey = basicKeyPair.getPrivate();
-		
-		byte[] tempBuffer = new byte[le];
-		
-		((RSAPublicKey) basicKeyPair.getPublic()).getExponent(tempBuffer, (short) 0);
-		((RSAPublicKey) basicKeyPair.getPublic()).getModulus(tempBuffer, (short) 3);
-      
-		apdu.setOutgoingLength(le);
-		apdu.sendBytesLong(tempBuffer, (short) 0, le);
+
+        buffer[0] = 0x01;
+        if (le < 1) {
+            ISOException.throwIt(ISO7816.SW_WRONG_LENGTH);
+        }
+
+        // informs the CAD the actual number of bytes
+        // returned
+        apdu.setOutgoingLength((byte) 1);
+
+//        // CREATE RNG OBJECT
+        RandomData rngRandom = RandomData.getInstance(RandomData.ALG_PSEUDO_RANDOM );
+        byte[] randomArray = new byte[8];
+        rngRandom.setSeed(randomArray,(short)0,(short)8);
+//        // GENERATE RANDOM BLOCK WITH 16 BYTES
+        rngRandom.generateData(buffer, (short) 0, (short)1); 
+
+        // send the 2-byte balance at the offset
+        // 0 in the apdu buffer
+        challenge = buffer[0];
+        apdu.sendBytes((short) 0, (short) 1);
     } // end of debit method
     
     private void receiveEncryptedPIN(APDU apdu) {
@@ -389,7 +405,7 @@ public class Wallet extends Applet {
              
             short size = rsaCipher.doFinal(buffer, ISO7816.OFFSET_CDATA, (short)numBytes, buffer,  (short) 0);
             
-            if (pin.check(buffer, (byte)0, (byte) 5) == false) {
+            if (pin.check(buffer, (byte)0, (byte) 5) == false && challenge == buffer[5]) {
                 ISOException.throwIt(SW_VERIFICATION_FAILED);
             }
             
